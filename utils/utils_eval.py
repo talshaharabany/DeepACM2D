@@ -3,16 +3,14 @@ from skimage.morphology import binary_dilation, disk
 import os
 import torch
 from utils.utils_vis import send_image_to_TB
-from sklearn.metrics.pairwise import cosine_similarity
-from sklearn.metrics import average_precision_score
-from PIL import Image, ImageDraw
+from utils.utils_train import norm_input
 
 
 def image_norm(img):
     return (img - img.min()) / (img.max() - img.min())
 
 
-def vis_ds(ds, model, writer, PTrain, faces, epoch, label, args, num_of_ex=5):
+def vis_ds(ds, model, segnet, writer, PTrain, faces, epoch, label, args, num_of_ex=5):
     model.eval()
     for ix, (_x, _y) in enumerate(ds):
         if ix>num_of_ex:
@@ -20,13 +18,15 @@ def vis_ds(ds, model, writer, PTrain, faces, epoch, label, args, num_of_ex=5):
         _x = _x.float().cuda()
         _p = PTrain.float().cuda().clone()
         _y = _y.float().cuda()
-        for it in range(int(args['DeepIt'])):
-            net_out = model(_x, _p, faces)
-            _p = net_out[1]
-        Mask = net_out[0]
+        seg_out = segnet(_x)
+        # _x = norm_input(_x, _y.unsqueeze(dim=1), float(args['a']))
+        _x = norm_input(_x, seg_out, float(args['a']))
+        iter = int(args['DeepIt'])
+        net_out = model(_x, _p, faces, iter)
+        Mask = net_out[0][iter - 1]
         (_, cIoU) = get_dice_ji(Mask, _y)
-        P = net_out[1]
-        img = image_norm(_x.squeeze(dim=0).detach().cpu().numpy().transpose(1, 2, 0))
+        P = net_out[1][iter - 1]
+        img = image_norm(net_out[4].squeeze(dim=0).detach().cpu().numpy().transpose(1, 2, 0))
         P_init = PTrain.squeeze().detach().cpu().numpy().transpose(1, 0)
         Mask = Mask.squeeze(dim=0).squeeze(dim=0).detach().cpu().numpy()
         P = P.squeeze(dim=0).squeeze(dim=0).detach().cpu().numpy().transpose(1, 0)
@@ -38,36 +38,29 @@ def vis_ds(ds, model, writer, PTrain, faces, epoch, label, args, num_of_ex=5):
         writer.add_image(label+str(ix), im, dataformats='HWC', global_step=epoch)
     model.train()
 
-def eval_ds(ds, model, writer, PTrain, faces, epoch, PATH1, best, label, args):
+
+def eval_ds(ds, model, segnet, PTrain, faces, args):
     model.eval()
-    TestDice_list = []
     TestIoU_list = []
     model.eval()
     for ix, (_x, _y) in enumerate(ds):
         _x = _x.float().cuda()
         _p = PTrain.float().cuda().clone()
         _y = _y.float().cuda()
-        for it in range(int(args['DeepIt'])):
-            net_out = model(_x, _p, faces)
-            _p = net_out[1]
-        Mask = net_out[0]
-        (cDice, cIoU) = get_dice_ji(Mask, _y)
-        TestDice_list.append(cDice)
+        seg_out = segnet(_x).detach()
+        _x = norm_input(_x, seg_out, float(args['a']))
+        iter = int(args['DeepIt'])
+        net_out = model(_x, _p, faces, iter)
+        Mask = net_out[0][iter-1]
+        _, cIoU = get_dice_ji(Mask, _y)
         TestIoU_list.append(cIoU)
-    Dice = np.mean(TestDice_list)
     IoU = np.mean(TestIoU_list)
-    print((epoch, Dice, IoU))
-    if best < IoU:
-        torch.save(model, PATH1 + 'model.pt')
-        print('best results: ' + str(IoU))
-    writer.add_scalar('Dice_'+label, Dice, global_step=epoch)
-    writer.add_scalar('IoU_'+label, IoU, global_step=epoch)
-    vis_ds(ds, model, writer, PTrain, faces, epoch, label, args, num_of_ex=5)
+    # vis_ds(ds, model, segnet, writer, PTrain, faces, epoch, label, args, num_of_ex=5)
     model.train()
-    return best
+    return IoU
 
 
-def get_dice_ji(predict,target):
+def get_dice_ji(predict, target):
     predict = predict.data.cpu().numpy() + 1
     target = target.data.cpu().numpy() + 1
     # predict = predict + 1
@@ -84,7 +77,7 @@ def update_net_list(PATH):
     a = os.listdir(PATH)
     PATH1_list = []
     for i in a:
-        if i[0:3]=='net': PATH1_list.append(i)
+        if i[0:5]=='model': PATH1_list.append(i)
     PATH1_list.sort()
     return PATH1_list
 
@@ -93,7 +86,7 @@ def dice_metric(X, Y):
     return np.sum(X[Y==1])*2.0 / (np.sum(X) + np.sum(Y) + 1e-6)
 
 
-def IoU_metric(y_pred,y_true):
+def IoU_metric(y_pred, y_true):
     intersection = np.sum(y_true * y_pred, axis=None)
     union = np.sum(y_true, axis=None) + np.sum(y_pred, axis=None) - intersection
     if float(union)==0: return 0.0
