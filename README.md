@@ -23,10 +23,6 @@ python eval.py -task viah -nP 100 -it 3 -a 0.4
  python eval_seg.py -task bing -nP 24 -it 2 -a 0.4
 ```
 ### Results  
-  
-<p align="center">
-  <img src="pic/fchardnet70_cityscapes.png" width="420" title="Cityscapes">
-</p>  
 
 | Method | Viah <br> mIoU  | Bing <br> mIoU| 
 | :---: |  :---:  |  :---:  | 
