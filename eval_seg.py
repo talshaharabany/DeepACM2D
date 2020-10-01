@@ -18,8 +18,8 @@ def eval_ds(ds, model):
         _x = _x.float().cpu()
         _y = _y.float().cpu()
         Mask = model(_x)
-        Mask[Mask>=0.5] = 1
-        Mask[Mask<0.5] = 0
+        Mask[Mask >= 0.5] = 1
+        Mask[Mask < 0.5] = 0
         (cDice, cIoU) = get_dice_ji(Mask, _y)
         TestDice_list.append(cDice)
         TestIoU_list.append(cIoU)
@@ -33,18 +33,18 @@ def main():
     args = get_args()
     save_args(args)
 
+    if args['task'] == 'viah':
+        PATH = r'results/viah/best/'
+        testset = viah_segmentation(ann='test', args=args)
+    elif args['task'] == 'bing':
+        testset = bing_segmentation(ann='test', args=args)
+        PATH = r'results/bing/best/'
     segnet = Segmentation(args)
-    segnet1 = torch.load(r'results/mask/model.pt')
+    segnet1 = torch.load(PATH + 'SEG.pt')
     segnet.load_state_dict(segnet1.state_dict())
     segnet.cpu().eval()
-
-    trainset = viah_segmentation(ann='training', args=args)
-    testset = viah_segmentation(ann='test', args=args)
-    ds_tri = torch.utils.data.DataLoader(trainset, batch_size=25, shuffle=False,
-                                         num_workers=0, drop_last=False)
     ds_val = torch.utils.data.DataLoader(testset, batch_size=1, shuffle=False,
-                                         num_workers=0, drop_last=False)
-    eval_ds(ds_tri, segnet)
+                                         num_workers=1, drop_last=False)
     eval_ds(ds_val, segnet)
 
 if __name__ == '__main__':

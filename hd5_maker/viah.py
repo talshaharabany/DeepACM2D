@@ -14,8 +14,8 @@ def get_img(cfile, shape=(256, 256)):
 def get_mask(cfile, shape=(256, 256)):
     GT = cv2.imread(cfile, 0)
     GT = resize(GT, shape)
-    GT[GT>=0.5] = 1
-    GT[GT<0.5] = 0
+    GT[GT >= 0.5] = 1
+    GT[GT < 0.5] = 0
     return GT
 
 

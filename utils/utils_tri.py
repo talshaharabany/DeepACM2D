@@ -1,11 +1,7 @@
 import torch
-import torch.nn as nn
-import torch.nn.functional as F
-
 import math
 import numpy as np
 from scipy.spatial import Delaunay
-import neural_renderer as nr
 
 
 def get_faces(P):

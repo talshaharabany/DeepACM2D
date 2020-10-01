@@ -154,13 +154,5 @@ if __name__ == "__main__":
         print(lr)
         lrs.append(lr)
         lr_scheduler.step()
-    # import matplotlib
-    # import matplotlib.pyplot as plt
-    # import numpy as np
-    # lrs = np.array(lrs)
-    # n_lrs = len(lrs)
-    # plt.plot(np.arange(n_lrs), lrs)
-    # plt.grid()
-    # plt.show()
 
 

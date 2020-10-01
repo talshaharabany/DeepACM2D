@@ -229,7 +229,7 @@ class RandomVerticalFlip(object):
     def __call__(self, img, mask):
         if random.random() < self.p:
             return F.vflip(img), F.vflip(mask)
-        return img
+        return img, mask
 
 
 class RandomPerspective(object):

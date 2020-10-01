@@ -17,7 +17,7 @@ class viah_segmentation(Dataset):
             self.transformations = transforms.Compose([transforms.ToPILImage(),
                                                        transforms.RandomResizedCrop(size=(256, 256),
                                                                                     mask_size=(256, 256),
-                                                                                    scale=(0.75, 1.5)),
+                                                                                    scale=(0.75, 2)),
                                                        transforms.ColorJitter(brightness=0.4,
                                                                               contrast=0.4,
                                                                               saturation=0.4,

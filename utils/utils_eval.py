@@ -4,29 +4,27 @@ import os
 import torch
 from utils.utils_vis import send_image_to_TB
 from utils.utils_train import norm_input
-
+import cv2
 
 def image_norm(img):
     return (img - img.min()) / (img.max() - img.min())
 
 
-def vis_ds(ds, model, segnet, writer, PTrain, faces, epoch, label, args, num_of_ex=5):
+def vis_ds(ds, model, segnet, PTrain, faces, args, num_of_ex=5):
     model.eval()
     for ix, (_x, _y) in enumerate(ds):
-        if ix>num_of_ex:
-            break
+        if ix > num_of_ex: break
         _x = _x.float().cuda()
+        img = image_norm(_x.squeeze(dim=0).detach().cpu().numpy().transpose(1, 2, 0))
         _p = PTrain.float().cuda().clone()
         _y = _y.float().cuda()
         seg_out = segnet(_x)
-        # _x = norm_input(_x, _y.unsqueeze(dim=1), float(args['a']))
         _x = norm_input(_x, seg_out, float(args['a']))
         iter = int(args['DeepIt'])
         net_out = model(_x, _p, faces, iter)
         Mask = net_out[0][iter - 1]
         (_, cIoU) = get_dice_ji(Mask, _y)
         P = net_out[1][iter - 1]
-        img = image_norm(net_out[4].squeeze(dim=0).detach().cpu().numpy().transpose(1, 2, 0))
         P_init = PTrain.squeeze().detach().cpu().numpy().transpose(1, 0)
         Mask = Mask.squeeze(dim=0).squeeze(dim=0).detach().cpu().numpy()
         P = P.squeeze(dim=0).squeeze(dim=0).detach().cpu().numpy().transpose(1, 0)
@@ -34,8 +32,8 @@ def vis_ds(ds, model, segnet, writer, PTrain, faces, epoch, label, args, num_of_
         Ix = net_out[2].squeeze(dim=0).squeeze(dim=0).detach().cpu().numpy()
         Iy = net_out[3].squeeze(dim=0).squeeze(dim=0).detach().cpu().numpy()
         GT = _y.squeeze(dim=0).squeeze(dim=0).detach().cpu().numpy()
-        im = send_image_to_TB(img, P_init, Mask, P, Ix, Iy, GT, cIoU)
-        writer.add_image(label+str(ix), im, dataformats='HWC', global_step=epoch)
+        im = cv2.cvtColor(send_image_to_TB(img, P_init, Mask, P, Ix, Iy, GT, cIoU), cv2.COLOR_RGBA2BGR)
+        cv2.imwrite('out/' + str(ix) + '.jpg', im)
     model.train()
 
 
@@ -43,28 +41,26 @@ def eval_ds(ds, model, segnet, PTrain, faces, args):
     model.eval()
     TestIoU_list = []
     model.eval()
-    for ix, (_x, _y) in enumerate(ds):
-        _x = _x.float().cuda()
-        _p = PTrain.float().cuda().clone()
-        _y = _y.float().cuda()
-        seg_out = segnet(_x).detach()
-        _x = norm_input(_x, seg_out, float(args['a']))
-        iter = int(args['DeepIt'])
-        net_out = model(_x, _p, faces, iter)
-        Mask = net_out[0][iter-1]
-        _, cIoU = get_dice_ji(Mask, _y)
-        TestIoU_list.append(cIoU)
-    IoU = np.mean(TestIoU_list)
-    # vis_ds(ds, model, segnet, writer, PTrain, faces, epoch, label, args, num_of_ex=5)
-    model.train()
-    return IoU
+    with torch.no_grad():
+        for ix, (_x, _y) in enumerate(ds):
+            _x = _x.float().cuda()
+            _p = PTrain.float().cuda().clone()
+            _y = _y.float().cuda()
+            seg_out = segnet(_x).detach()
+            _x = norm_input(_x, seg_out, float(args['a']))
+            iter = int(args['DeepIt'])
+            net_out = model(_x, _p, faces, iter)
+            Mask = net_out[0][iter-1]
+            _, cIoU = get_dice_ji(Mask, _y)
+            TestIoU_list.append(cIoU)
+        IoU = np.mean(TestIoU_list)
+        model.train()
+        return IoU
 
 
 def get_dice_ji(predict, target):
     predict = predict.data.cpu().numpy() + 1
     target = target.data.cpu().numpy() + 1
-    # predict = predict + 1
-    # target = target + 1
     tp = np.sum(((predict == 2) * (target == 2)) * (target > 0))
     fp = np.sum(((predict == 2) * (target == 1)) * (target > 0))
     fn = np.sum(((predict == 1) * (target == 2)) * (target > 0))

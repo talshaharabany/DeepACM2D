@@ -1,21 +1,25 @@
 import h5py
 import os
-import cv2
 import numpy as np
-from skimage.transform import resize
 from glob import glob
+from PIL import Image
+import torchvision.transforms as transforms
+
 
 def get_img(cfile):
-    img = cv2.cvtColor(cv2.imread(cfile, cv2.IMREAD_COLOR), cv2.COLOR_BGR2RGB)
-    img = resize(img, (64, 64))*255
-    return img
+    image = Image.open(cfile)
+    image = transforms.functional.resize(image, (256, 256), 3)
+    return np.asarray(image)
 
 def get_mask(cfile):
-    GT = cv2.imread(cfile, 0)
-    GT = resize(GT, (64, 64))
-    GT[GT > 0.5] = 1
-    GT[GT <= 0.5] = 0
-    return GT
+    image = Image.open(cfile)
+    image = np.asarray(image).copy()
+    image[image > 0] = 255
+    image = image.astype(np.uint8)
+    image = Image.fromarray(image).convert('1')
+    mask_one = transforms.functional.resize(image, (256, 256))
+    mask = np.asarray(mask_one).astype(np.float)
+    return mask
 
 src = '/media/data1/talshah/DAR/single_buildings/'
 hf_tri = h5py.File('/media/data1/talshah/DeepACM/Data/full_training_Bing.h5', 'w')

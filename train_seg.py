@@ -6,6 +6,7 @@ from models.model_seg import *
 from loader.viah_loader import *
 from loader.bing_loader import *
 from utils.utils_args import *
+from utils.loss import *
 from utils.utils_eval import get_dice_ji
 from utils.utils_lr import *
 
@@ -13,14 +14,14 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 torch.backends.cudnn.benchmark = True
 
 
-def train(ds, model, optimizer, criterion, scheduler, args):
+def train(ds, model, optimizer, criterion, criterion2, scheduler, args):
     loss_list = []
     for ix, (_x, _y) in tqdm(enumerate(ds)):
         _x = _x.float().cuda()
         _y = _y.float().cuda().unsqueeze(dim=1)
         optimizer.zero_grad()
         mask = model(_x)
-        loss = criterion(mask, _y)
+        loss = 0.1*criterion(mask, _y) + 1*criterion2(mask, _y)
         loss_list.append(loss.item())
         loss.backward()
         optimizer.step()
@@ -33,7 +34,6 @@ def eval_ds(ds, model, writer, epoch, PATH1, best, label, args):
     model.eval()
     TestDice_list = []
     TestIoU_list = []
-    model.eval()
     for ix, (_x, _y) in enumerate(ds):
         _x = _x.float().cuda()
         _y = _y.float().cuda()
@@ -46,10 +46,9 @@ def eval_ds(ds, model, writer, epoch, PATH1, best, label, args):
     Dice = np.mean(TestDice_list)
     IoU = np.mean(TestIoU_list)
     print((epoch, Dice, IoU))
-    if IoU > 0.89 and label=='test':
-        torch.save(model, PATH1 + 'model_' + str(epoch) + '.pt')
-        # print('best results: ' + str(IoU))
-        # best = IoU
+    if IoU > best and label=='test':
+        torch.save(model, PATH1 + '/SEG_best.pt')
+        print('best IOU results: ' + str(IoU))
     writer.add_scalar('Dice_' + label, Dice, global_step=epoch)
     writer.add_scalar('IoU_' + label, IoU, global_step=epoch)
     model.train()
@@ -57,16 +56,12 @@ def eval_ds(ds, model, writer, epoch, PATH1, best, label, args):
 
 
 def main(args, writer):
-    PATH1 = r'results/gpu'+str(args['folder'])+'/'
-    if bool(args['is_load']):
-        model = Segmentation(args)
-        model1 = torch.load(PATH1 + 'net_' + args['CP'] + '.pt')
-        model.load_state_dict(model1.state_dict())
-    else:
-        model = Segmentation(args)
+    PATH = r'results/' + args['task']
+    model = Segmentation(args)
     model.train().to(device)
 
     criterion = nn.BCELoss()
+    criterion2 = SoftDiceLoss()
     if args['opt'] == 'adam':
         optimizer = torch.optim.Adam(model.parameters(), lr=float(args['learning_rate']),
                                      weight_decay=float(args['WD']))
@@ -100,19 +95,16 @@ def main(args, writer):
         trainset = viah_segmentation(ann='training', args=args)
         testset = viah_segmentation(ann='test', args=args)
     elif args['task'] == 'bing':
-        trainset = bing_segmentation(ann='training', is_aug=False, args=args)
-        testset = bing_segmentation(ann='test', is_aug=False, args=args)
+        trainset = bing_segmentation(ann='training', args=args)
+        testset = bing_segmentation(ann='test', args=args)
 
     ds = torch.utils.data.DataLoader(trainset, batch_size=int(args['Batch_size']), shuffle=True,
                                      num_workers=int(args['nW']), drop_last=True)
-    ds_tri = torch.utils.data.DataLoader(trainset, batch_size=1, shuffle=False,
-                                         num_workers=0, drop_last=False)
     ds_val = torch.utils.data.DataLoader(testset, batch_size=1, shuffle=False,
                                          num_workers=0, drop_last=False)
     best = 0
-    best_tri = 1
     for epoch in range(1, int(args['epochs'])):
-        loss_list = train(ds, model, optimizer, criterion, scheduler, args)
+        loss_list = train(ds, model, optimizer, criterion, criterion2, scheduler, args)
         print('************************************************************************')
         print('Epoch: ' + str(epoch) + ' Mask mean loss: ' + str(np.mean(loss_list)) + ' Mask max loss: ' + str(
             np.max(loss_list)) + ' Mask min loss: ' + str(np.min(loss_list)))
@@ -122,8 +114,7 @@ def main(args, writer):
             scheduler.step()
 
         if epoch % 3 == 1:
-            eval_ds(ds_tri, model, writer, epoch, PATH1, best_tri, 'training', args)
-            best, _ = eval_ds(ds_val, model, writer, epoch, PATH1, best, 'test', args)
+            best, _ = eval_ds(ds_val, model, writer, epoch, PATH, best, 'test', args)
 
 if __name__ == '__main__':
     args = get_args()

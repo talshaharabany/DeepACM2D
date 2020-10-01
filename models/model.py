@@ -41,7 +41,6 @@ class DeepACM(nn.Module):
     def __init__(self, args):
         super(DeepACM, self).__init__()
         self.backbone = HarDNet(depth_wise=bool(int(args['depth_wise'])), arch=int(args['order']), args=args)
-        # self.backbone = HarDNet(depth_wise=bool(int(args['depth_wise'])), arch=int(args['order']), args=args)
         self.ACMDecoder = Decoder(self.backbone.full_features, args)
         self.nP = int(args['nP'])
         self.texture_size = 2

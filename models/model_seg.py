@@ -4,17 +4,11 @@ from models.hardnet import *
 
 
 class final_layer(nn.Module):
-    def __init__(self, full_features):
+    def __init__(self):
         super(final_layer, self).__init__()
-        # self.conv1 = nn.Conv2d(full_features[0], full_features[0], 3, stride=1, padding=1)
-        # self.conv2 = nn.Conv2d(full_features[0], 1, 1, stride=1, padding=0)
-        # self.BN1 = nn.BatchNorm2d(full_features[0])
-        # self.BN2 = nn.BatchNorm2d(1)
 
     def forward(self, z, size):
         return F.interpolate(z, size=size, mode='bilinear', align_corners=True)
-        # z = F.relu(self.BN1(self.conv1(z)))
-        # return F.sigmoid(self.BN2(self.conv2(z)))
 
 
 class Decoder(nn.Module):
@@ -36,7 +30,7 @@ class Decoder(nn.Module):
             self.up3 = UpBlock(full_features[1] + full_features[0], 1,
                                func='sigmoid', drop=float(args['drop'])).cuda()
         self.args = args
-        self.final = final_layer(full_features)
+        self.final = final_layer()
 
     def forward(self, x, size):
         if int(self.args['outlayer']) == 2:

@@ -13,25 +13,18 @@ def get_args():
     parser.add_argument('-a', '--a', default=0.5, help='initial guess circle radius', required=False)
     parser.add_argument('-nW', '--nW', default=0, help='number os workers', required=False)
     parser.add_argument('-WD', '--WD', default=0.00005, help='number os workers', required=False)
-    parser.add_argument('-wM', '--wM', default=1, help='mask loss coeff', required=False)
-    parser.add_argument('-wB', '--wB', default=0, help='Ballon loss coeff', required=False)
-    parser.add_argument('-wNN', '--wNN', default=0, help='NN loss coeff', required=False)
-    parser.add_argument('-folder', '--folder', default=1, help='name of save folder', required=False)
     parser.add_argument('-nP', '--nP', default=32, help='number of points', required=False)
     parser.add_argument('-order', '--order', default=85, help='backbone dimension', required=False)
     parser.add_argument('-depth_wise', '--depth_wise', default=0, help='backbone dimension', required=False)
     parser.add_argument('-outlayer', '--outlayer', default=3, help='backbone dimension', required=False)
     parser.add_argument('-im_size', '--im_size', default=256, help='backbone dimension', required=False)
-    parser.add_argument('-is_load', '--is_load', default=0, help='is load check point?', required=False)
-    parser.add_argument('-CP', '--CP', default=1, help='check point epoch', required=False)
-    parser.add_argument('-CHP', '--CHP', default=2, help='evaluation iteration', required=False)
-    parser.add_argument('-task', '--task', default='viah', help='which dataset to use?', required=False)
+    parser.add_argument('-task', '--task', default='bing', help='which dataset to use?', required=False)
     args = vars(parser.parse_args())
     return args
 
 
 def save_args(args):
-    path = 'results/gpu' + str(args['folder'])+'/params.csv'
+    path = r'results/' + args['task'] + '/params.csv'
     f = open(path, 'w')
     keys = list(args.keys())
     vals = list(args.values())

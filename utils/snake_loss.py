@@ -36,9 +36,3 @@ class Snakeloss:
                        0.1*self.avg_dis(net_out[1][it]).mean()
         return loss
 
-'''
-loss = loss 
-       self.criterion(net_out[0][it], gt) + 
-       0.1*self.avg_dis(net_out[1][it]).mean() + 
-       self.ballon_loss(net_out[0][it])
-'''
