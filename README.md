@@ -1,6 +1,6 @@
 # Deep Active Countor Model(ACM) for Buildings Segmentations
 <p align="center">
-  <img src="pic/sample01.jpg" width="800">
+  <img src="pics/16.jpg" width="800">
 </p>
  Deep snake algorithm for 2D images based on - [ICLR2020 paper(revisiting the results)](https://arxiv.org/abs/1912.00367)
  Architecture based on [Hardnet85](https://arxiv.org/abs/1909.00948)
@@ -33,3 +33,7 @@ python eval.py -task viah -nP 100 -it 3 -a 0.4
 | DARNet  | 88.24  | 75.29  | 
 | DSAC | 71.10 | 38.74 | 
 | **ours** | **90.33**  | **75.53** | 
+
+<p align="center">
+  <img src="pics/8.jpg" width="800">
+</p>
