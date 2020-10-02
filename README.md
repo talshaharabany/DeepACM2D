@@ -4,7 +4,7 @@
 </p>
  Deep snake algorithm for 2D images based on - [ICLR2020 paper(revisiting the results)](https://arxiv.org/abs/1912.00367)
  Architecture based on [Hardnet85](https://arxiv.org/abs/1909.00948)
- for the data and weights = (https://drive.google.com/drive/folders/1fBSjPse3d8geV_iI3-PXV3x2qmLoUnzL?usp=sharing)
+ Data and weights = (https://drive.google.com/drive/folders/1fBSjPse3d8geV_iI3-PXV3x2qmLoUnzL?usp=sharing)
 
 ### Get Started
 **To train a segmentation model :**
