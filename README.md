@@ -1,4 +1,4 @@
-# Deep Active Countor Model(ACM) for Buildings Segmentations
+# Deep Active Contours Model(ACM) for Buildings Segmentations
 <p align="center">
   <img src="pics/16.jpg" width="800">
 </p>
